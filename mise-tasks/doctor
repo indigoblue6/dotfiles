@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+#MISE description="開発環境のセットアップ状態を自己診断"
+set -uo pipefail
+
+repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}"
+
+ok=0
+warn=0
+fail=0
+
+pass() {
+  printf '✓ %s\n' "$1"
+  ok=$((ok + 1))
+}
+
+warning() {
+  printf '! %s\n' "$1"
+  warn=$((warn + 1))
+}
+
+failure() {
+  printf '✗ %s\n' "$1"
+  fail=$((fail + 1))
+}
+
+check_command() {
+  local command_name="$1"
+  if command -v "$command_name" >/dev/null 2>&1; then
+    pass "$command_name"
+  else
+    failure "$command_name が見つかりません"
+  fi
+}
+
+check_optional_command() {
+  local command_name="$1"
+  if command -v "$command_name" >/dev/null 2>&1; then
+    pass "$command_name"
+  else
+    warning "$command_name が見つかりません"
+  fi
+}
+
+printf '%s\n' 'dotfiles doctor'
+printf '%s\n\n' '==============='
+
+printf '%s\n' '[platform]'
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  pass 'WSL を検出'
+else
+  warning 'WSL ではありません'
+fi
+
+if [[ -r /etc/os-release ]]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  if [[ "${ID:-}" == "ubuntu" ]]; then
+    pass "Ubuntu ${VERSION_ID:-unknown}"
+  else
+    warning "Ubuntu 以外の Linux (${PRETTY_NAME:-unknown})"
+  fi
+else
+  warning '/etc/os-release を読み取れません'
+fi
+
+printf '\n%s\n' '[required commands]'
+for command_name in zsh git curl mise; do
+  check_command "$command_name"
+done
+
+printf '\n%s\n' '[development tools]'
+for command_name in bat delta eza fd fzf gh hexyl jq procs rg shellcheck starship tmux zoxide; do
+  check_command "$command_name"
+done
+
+printf '\n%s\n' '[configuration]'
+if [[ -e "$HOME/.zshrc" || -L "$HOME/.zshrc" ]]; then
+  if [[ "$HOME/.zshrc" -ef "$repo_dir/.zshrc" ]]; then
+    pass '~/.zshrc -> dotfiles/.zshrc'
+  else
+    warning '~/.zshrc は dotfiles/.zshrc へのリンクではありません'
+  fi
+else
+  failure '~/.zshrc がありません'
+fi
+
+mise_config="$config_dir/mise/config.toml"
+if [[ -e "$mise_config" || -L "$mise_config" ]]; then
+  if [[ "$mise_config" -ef "$repo_dir/mise.toml" ]]; then
+    pass 'mise config -> dotfiles/mise.toml'
+  else
+    warning 'mise config は dotfiles/mise.toml へのリンクではありません'
+  fi
+else
+  failure 'mise config がありません'
+fi
+
+starship_config="$config_dir/starship.toml"
+if [[ -e "$starship_config" || -L "$starship_config" ]]; then
+  if [[ "$starship_config" -ef "$repo_dir/starship.toml" ]]; then
+    pass 'Starship config -> dotfiles/starship.toml'
+  else
+    warning 'Starship config は dotfiles/starship.toml へのリンクではありません'
+  fi
+else
+  warning 'Starship config がありません'
+fi
+
+printf '\n%s\n' '[shell]'
+login_shell="$(getent passwd "$USER" 2>/dev/null | cut -d: -f7)"
+if [[ "$login_shell" == */zsh ]]; then
+  pass "login shell: $login_shell"
+else
+  warning "login shell が zsh ではありません (${login_shell:-unknown})"
+fi
+
+if zsh -n "$repo_dir/.zshrc" >/dev/null 2>&1; then
+  pass '.zshrc syntax'
+else
+  failure '.zshrc に構文エラーがあります'
+fi
+
+printf '\n%s\n' '[GitHub]'
+if command -v gh >/dev/null 2>&1; then
+  if gh auth status --hostname github.com >/dev/null 2>&1; then
+    pass 'GitHub CLI authenticated'
+  else
+    warning 'GitHub CLI は未認証です'
+  fi
+fi
+
+printf '\n%s\n' '[optional]'
+check_optional_command code
+if [[ -n "${SSH_AUTH_SOCK:-}" ]]; then
+  pass 'SSH agent available'
+else
+  warning 'SSH_AUTH_SOCK が設定されていません'
+fi
+
+printf '\n%s\n' '---------------'
+printf 'passed: %d, warnings: %d, failed: %d\n' "$ok" "$warn" "$fail"
+
+if (( fail > 0 )); then
+  printf '%s\n' '診断結果: 修正が必要です。'
+  exit 1
+fi
+
+if (( warn > 0 )); then
+  printf '%s\n' '診断結果: 使用可能ですが、推奨設定を確認してください。'
+else
+  printf '%s\n' '診断結果: 開発環境は正常です。'
+fi
