@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#MISE description="dotfiles の構文・ShellCheck・差分を検証"
+set -euo pipefail
+
+repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$repo_dir"
+
+for script in scripts/*.sh mise-tasks/check; do
+  bash -n "$script"
+done
+shellcheck scripts/*.sh mise-tasks/check
+zsh -n .zshrc
+git diff --check
+git diff --cached --check
+printf '%s\n' 'All checks passed.'

@@ -11,7 +11,7 @@ bash scripts/setup-ubuntu.sh
 ```
 
 apt は zsh・Git・curl・証明書・ビルドツールと zsh 補助プラグインに使用します。
-開発 CLI（bat・delta・eza・fd・fzf・hexyl・jq・procs・ripgrep・Starship・tmux・zoxide）は
+開発 CLI（bat・delta・eza・fd・fzf・gh・hexyl・jq・procs・ripgrep・ShellCheck・Starship・tmux・zoxide）は
 mise で管理します。`~/.zshrc` が未作成ならこのリポジトリへのリンクを作ります。
 既存の別の `.zshrc` は上書きしません。繰り返し実行できます。
 
@@ -88,11 +88,30 @@ Git のユーザー情報・グローバル設定は変更しません。
 
 ## 確認
 
+このリポジトリ内で、次のコマンドを実行してください。
+
 ```bash
-bash -n scripts/setup-ubuntu.sh scripts/setup-mise.sh
-zsh -n .zshrc
-zsh -ic 'print -r -- "zsh startup OK: $ZSH_VERSION"'
+mise run check
 ```
+
+`mise-tasks/check` が Bash スクリプトの構文と ShellCheck、`.zshrc` の構文、
+未ステージ・ステージ済み差分の空白エラーを検証します。
+ShellCheck は zsh 非対応のため `.zshrc` には実行しません。
+シェルの実際の起動やツール連携は、別途新しいターミナルで確認してください。
+
+## GitHub CLI の認証
+
+WSL のターミナルで一度実行してください。ログインにはブラウザでの操作が必要です。
+
+```bash
+mise exec -- gh auth login --hostname github.com --git-protocol https --web
+mise exec -- gh auth setup-git --hostname github.com
+mise exec -- gh auth status
+```
+
+`gh auth setup-git` は Git の認証ヘルパーを設定します。
+以後は `git push`、`gh pr create`、`gh pr checks` などを利用できます。
+コミットの名前・メールアドレスは GitHub のログインとは別の設定です。
 
 ## 参照
 
