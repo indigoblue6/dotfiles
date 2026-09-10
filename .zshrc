@@ -1,82 +1,149 @@
-PS1="[${USER}@${HOST%%.*} %1~]%(!.#.$) " # Linux bashと同じ形式
-RPROMPT="%T" # 右側に時間表示
-setopt transient_rprompt # 右側まで入力がきたら時間表示を消す
-setopt prompt_subst # 変数展開など便利なプロント
-#export LANG=ja_JP.UTF-8 # 日本語環境
-export EDITOR=vim # エディタはvi
+# 対話シェル専用。明示的に source された場合も非対話シェルには適用しない。
+[[ -o interactive ]] || return
+
+# 基本設定
+export EDITOR="${EDITOR:-vim}"
+export VISUAL="${VISUAL:-$EDITOR}"
 bindkey -v
-alias cat='bat'
-alias ls='exa -lh'
-alias od='hexyl'
-alias ps='procs'
 
-# Color
-autoload colors
-colors
+# PATH は zsh の配列で管理し、再読み込み時の重複を防ぐ。
+typeset -U path
+path=(
+  "$HOME/.local/bin"
+  "$HOME/.anyenv/bin"
+  "$HOME/.roswell/bin"
+  "$HOME/.hsenv/bin"
+  "$HOME/.rbenv/bin"
+  "$HOME/.pyenv/bin"
+  $path
+)
+export PATH
 
-# Color at Prompt
-PROMPT="%{${fg[green]}%}%n@%m %{${fg[yellow]}%}%~ %{${fg[red]}%}%# %{${reset_color}%}"
-PROMPT2="%{${fg[red]}%} %_ > %{${reset_color}%}"
-SPROMPT="%{${fg[yellow]}%}correct: %R -> %r ? [n,y,a,e] %{${reset_color}%}"
+# プロンプト（zsh 標準の色指定を使用）
+PROMPT='%F{green}%n@%m %F{yellow}%~ %F{red}%# %f'
+PROMPT2='%F{red} %_ > %f'
+RPROMPT='%T'
+SPROMPT='%F{yellow}correct: %R -> %r ? [n,y,a,e] %f'
+setopt transient_rprompt
 
-# Color at ls
+# ディレクトリ移動・補完表示
+setopt auto_cd auto_pushd pushd_ignore_dups
+setopt list_packed list_types
+# 新しい CLI 名を誤訂正しない。
+unsetopt correct
+
+# 色設定を ls と補完候補で共有する。
 export LSCOLORS=gxfxcxdxbxegedabagacag
 export LS_COLORS='di=36;40:ln=35;40:so=32;40:pi=33;40:ex=31;40:bd=34;46:cd=34;43:su=30;41:sg=30;46:tw=30;42:ow=30;46'
-
-# 補完候補もLS_COLORSに合わせて色が付くようにする
 zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list '' 'm:{a-zA-Z}={A-Za-z}'
 
-# lsがカラー表示になるようエイリアスを設定
-#case "${OSTYPE}" in
-#    darwin*)
-#    # Mac
-#    alias ls="ls -GF";;
-#    linux*)
-#    # Linux
-#    alias ls='ls -F --color';;
-#esac
+# 代替ツールがある場合のみエイリアスを設定する。
+# eza を優先し、従来の exa も利用可能。
+if (( $+commands[eza] )); then
+  alias ls='eza -lh'
+elif (( $+commands[exa] )); then
+  alias ls='exa -lh'
+else
+  case $OSTYPE in
+    darwin*|freebsd*) alias ls='ls -lhG' ;;
+    linux*) alias ls='ls -lh --color=auto' ;;
+  esac
+fi
+if (( $+commands[bat] )); then
+  alias cat='bat'
+elif (( $+commands[batcat] )); then
+  alias cat='batcat'
+fi
+(( $+commands[hexyl] )) && alias od='hexyl'
+(( $+commands[procs] )) && alias ps='procs'
+if (( ! $+commands[fd] && $+commands[fdfind] )); then
+  alias fd='fdfind'
+fi
+alias ll='ls -a'
+alias gs='git status --short --branch'
+alias gl='git log --oneline --graph --decorate -20'
+if (( $+commands[delta] )); then
+  alias gd='git -c core.pager=delta diff'
+else
+  alias gd='git diff'
+fi
 
-# Complitation
-autoload -U compinit # 補完機能
-compinit -u # 補完を賢くする
-setopt autopushd # cdの履歴表示、cd - で一つ前のディレクトリへ
-setopt pushd_ignore_dups # 同ディレクトリを履歴に追加しない
-setopt auto_cd # ディレクトリ名のみでcd
-setopt list_packed # リストを詰めて表示
-setopt list_types # 補完一覧をファイル種別に表示
-setopt correct # コマンドのスペルチェックを有効に
+# 履歴（既存の保存先と保存件数を維持）
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=1100000
+SAVEHIST=1000000
+setopt hist_ignore_dups hist_reduce_blanks share_history extended_history
+setopt hist_expire_dups_first hist_find_no_dups hist_save_no_dups
 
-# History
-HISTFILE=~/.zsh_history # historyファイル
-HISTFILESIZE=1000000
-HISTSIZE=1000000 # ファイルサイズ
-SAVEHIST=1000000 # saveする量
-setopt hist_ignore_dups # 重複を記録しない
-setopt hist_reduce_blanks # スペース排除
-setopt share_history # 履歴ファイルを共有
-setopt EXTENDED_HISTORY # zshの開始終了を記録
-
-# Move history
-autoload history-search-end
+# vi 挿入モードで、入力済みの文字列から履歴を検索する。
+autoload -Uz history-search-end
 zle -N history-beginning-search-backward-end history-search-end
 zle -N history-beginning-search-forward-end history-search-end
-bindkey "^P" history-beginning-search-backward-end
-bindkey "^N" history-beginning-search-forward-end
-bindkey '^R' history-incremental-search-backward
-# alias
-zstyle ':completion:*' list-colors 'di=34' 'ln=35' 'so=32' 'ex=31' 'bd=46;34' 'cd=43;34'
-#export PATH="$HOME/.linuxbrew/bin:$PATH"
-#export MANPATH="$HOME/.linuxbrew/share/man:$MANPATH"
-#export INFOPATH="$HOME/.linuxbrew/share/info:$INFOPATH"
-export PATH="$HOME/.pyenv/bin:$PATH"
-#export PATH="$HOME/.plenv/bin:$PATH"
-export PATH="$HOME/.rbenv/bin:$PATH"
-#export PATH="$HOME/.phpenv/bin:$PATH"
-export PATH="$HOME/.hsenv/bin:$PATH"
-export PATH="$HOME/.roswell/bin:$PATH"
-export PATH="$HOME/.anyenv/bin:$PATH"
-eval "$(pyenv init -)"
-#eval "$(plenv init -)"
-eval "$(rbenv init -)"
-#eval "$(phpenv init -)"
-[ -f ~/.zshrc.include ] && source ~/.zshrc.include # 設定ファイルのinclude
+bindkey -M viins '^P' history-beginning-search-backward-end
+bindkey -M viins '^N' history-beginning-search-forward-end
+bindkey -M viins '^R' history-incremental-search-backward
+
+# バージョン管理ツールは、インストールされている場合のみ初期化する。
+# 補完用の fpath が追加されるため compinit より先に実行する。
+if (( $+commands[pyenv] )); then
+  eval "$(pyenv init - zsh)"
+fi
+if (( $+commands[rbenv] )); then
+  eval "$(rbenv init - zsh)"
+fi
+
+# 補完初期化。不適切な権限の補完ファイルは読み込まない。
+autoload -Uz compinit
+compinit -i
+
+# 履歴・ファイルをあいまい検索（Ctrl-R / Ctrl-T / Alt-C）。
+if (( $+commands[fzf] )); then
+  export FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:---height=40% --layout=reverse --border}"
+  if (( $+commands[fd] || $+commands[fdfind] )); then
+    if (( $+commands[fd] )); then
+      export FZF_DEFAULT_COMMAND='fd --type f --hidden --exclude .git'
+      export FZF_ALT_C_COMMAND='fd --type d --hidden --exclude .git'
+    else
+      export FZF_DEFAULT_COMMAND='fdfind --type f --hidden --exclude .git'
+      export FZF_ALT_C_COMMAND='fdfind --type d --hidden --exclude .git'
+    fi
+    export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
+  fi
+  # --zsh は fzf 0.48 以降。旧版は配布パッケージのスクリプトを使用。
+  if _dotfiles_fzf_init=$(fzf --zsh 2>/dev/null); then
+    eval "$_dotfiles_fzf_init"
+  elif [[ -r /usr/share/doc/fzf/examples/key-bindings.zsh ]]; then
+    source /usr/share/doc/fzf/examples/key-bindings.zsh
+  fi
+  unset _dotfiles_fzf_init
+fi
+
+# よく使うディレクトリに z <名前>、対話選択は zi <名前>。
+if (( $+commands[zoxide] )); then
+  eval "$(zoxide init zsh)"
+fi
+
+if [[ -r /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh ]]; then
+  source /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+  # vi 挿入モードの Ctrl-F で履歴からの候補を採用。
+  bindkey -M viins '^F' autosuggest-accept
+fi
+
+# Starship があればプロンプトを切り替える。
+if (( $+commands[starship] )); then
+  # 元のプロンプトの %# と同じく、特権ユーザーでは # を表示する。
+  export STARSHIP_PROMPT_CHARACTER="${(%):-%#}"
+  eval "$(starship init zsh)"
+fi
+
+# マシン固有の設定。
+if [[ -r "$HOME/.zshrc.include" ]]; then
+  source "$HOME/.zshrc.include"
+fi
+
+# ウィジェットの定義後、最後に構文ハイライトを読み込む。
+if [[ -r /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]]; then
+  source /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
