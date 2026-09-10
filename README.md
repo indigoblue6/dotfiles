@@ -97,7 +97,16 @@ mise run check
 `mise-tasks/check` が Bash スクリプトの構文と ShellCheck、`.zshrc` の構文、
 未ステージ・ステージ済み差分の空白エラーを検証します。
 ShellCheck は zsh 非対応のため `.zshrc` には実行しません。
-シェルの実際の起動やツール連携は、別途新しいターミナルで確認してください。
+
+実際の開発環境が正しくセットアップされているかは自己診断できます。
+
+```bash
+mise run doctor
+```
+
+`doctor` は WSL / Ubuntu、必須コマンド、mise 管理の開発 CLI、dotfiles への設定リンク、
+ログインシェル、`.zshrc` の構文、GitHub CLI の認証、SSH agent などを確認します。
+必須項目の欠落はエラー、推奨項目は警告として表示します。
 
 ## GitHub CLI の認証
 
