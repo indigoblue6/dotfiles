@@ -5,10 +5,10 @@ set -euo pipefail
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$repo_dir"
 
-for script in scripts/*.sh mise-tasks/check; do
+for script in scripts/*.sh mise-tasks/check mise-tasks/doctor; do
   bash -n "$script"
 done
-shellcheck scripts/*.sh mise-tasks/check
+shellcheck scripts/*.sh mise-tasks/check mise-tasks/doctor
 zsh -n .zshrc
 git diff --check
 git diff --cached --check
