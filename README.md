@@ -10,9 +10,37 @@ Ubuntu / WSL と zsh 向けの開発環境。vi キーバインドを使いま�
 bash scripts/setup-ubuntu.sh
 ```
 
-スクリプトは apt でツールを導入し、`~/.zshrc` が未作成ならこのリポジトリへの
-シンボリックリンクを作ります。既存の別の `.zshrc` は上書きしません。
-繰り返し実行できます。言語別のランタイムはプロジェクトに合わせて別途導入します。
+apt は zsh・Git・curl・証明書・ビルドツールと zsh 補助プラグインに使用します。
+開発 CLI（bat・delta・eza・fd・fzf・hexyl・jq・procs・ripgrep・Starship・tmux・zoxide）は
+mise で管理します。`~/.zshrc` が未作成ならこのリポジトリへのリンクを作ります。
+既存の別の `.zshrc` は上書きしません。繰り返し実行できます。
+
+既に Ubuntu 側の準備が済んでいる場合、sudo 不要で mise への移行だけ実行できます。
+
+```bash
+bash scripts/setup-mise.sh
+exec zsh
+```
+
+`mise.toml` を `~/.config/mise/config.toml` にリンクします（`XDG_CONFIG_HOME` に対応）。
+既存の別の mise 設定がある場合は停止するので、内容を統合してください。
+旧 apt 版や単体インストール版は削除せず、mise が管理する実行ファイルを優先します。
+既に起動している tmux サーバーは旧バイナリのままなので、セッション終了後に再起動してください。
+
+言語ランタイムも mise に統一します。プロジェクトのディレクトリで必要なものを指定します。
+
+```bash
+mise use node@24       # プロジェクトの mise.toml に記録
+mise use python@3.14   # Python を使うプロジェクトで実行
+mise use ruby@3.4      # Ruby を使うプロジェクトで実行
+mise install          # 設定されたバージョンを導入
+mise ls               # 使用バージョンと設定元を確認
+mise upgrade          # 設定のバージョン指定に従って更新
+```
+
+全プロジェクト共通のランタイムは `mise use --global` で指定できます。
+グローバル設定はリポジトリにリンクしているため、その変更も dotfiles の差分になります。
+Ruby などソースビルドするランタイムは追加のシステムライブラリが必要な場合があります。
 
 標準シェルの登録は `getent passwd "$USER"` で確認できます。
 zsh 以外なら `chsh -s /usr/bin/zsh` を実行して再ログインしてください。
@@ -31,9 +59,7 @@ Starship の表示は元の `.zshrc` を踏襲した 1 行形式です。
 
 セットアップは `~/.config/starship.toml`（`XDG_CONFIG_HOME` 設定時はその配下）に
 リンクを作ります。既存の設定は保持します。
-この環境では公式インストーラーで `~/.local/bin/starship` に導入済みです。
-再構築時は Ubuntu のセットアップスクリプトで apt 版を導入します。
-両方ある場合は PATH の順序によりユーザー領域の版が優先されます。
+Starship も mise 管理です。元の配色・1 行表示・Git と言語情報を維持しています。
 
 | 操作・コマンド | 用途 |
 | --- | --- |
@@ -56,18 +82,21 @@ fzf のファイル検索は隠しファイルを含み、`.git` と ignore 対�
 Ubuntu パッケージの配置を前提とします。
 
 `~/.zshrc.include` にマシン固有の設定を置けます。PATH に `~/.local/bin` を含めています。
-既存の pyenv / rbenv はインストール済みの場合のみ初期化します。
+pyenv・rbenv・anyenv・hsenv・Roswell 用の PATH 追加と初期化は廃止し、
+`mise activate zsh` でプロジェクトごとの環境を適用します。
 Git のユーザー情報・グローバル設定は変更しません。
 
 ## 確認
 
 ```bash
-bash -n scripts/setup-ubuntu.sh
+bash -n scripts/setup-ubuntu.sh scripts/setup-mise.sh
 zsh -n .zshrc
 zsh -ic 'print -r -- "zsh startup OK: $ZSH_VERSION"'
 ```
 
 ## 参照
+
+- [mise の使い方](https://mise.jdx.dev/getting-started)
 
 - [Starship の公式設定リファレンス](https://starship.rs/config/)
 - [fzf のシェル連携](https://github.com/junegunn/fzf#setting-up-shell-integration)

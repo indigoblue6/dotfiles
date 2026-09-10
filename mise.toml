@@ -1,0 +1,15 @@
+# ~/.config/mise/config.toml からリンクして全プロジェクトで使用する。
+# 言語ランタイムは各プロジェクトで mise use node@24 などを実行して指定する。
+[tools]
+bat = "latest"
+delta = "latest"
+eza = "latest"
+fd = "latest"
+fzf = "latest"
+hexyl = "latest"
+jq = "latest"
+"github:dalance/procs" = "latest"
+ripgrep = "latest"
+starship = "latest"
+tmux = "latest"
+zoxide = "latest"

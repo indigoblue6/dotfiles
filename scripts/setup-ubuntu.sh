@@ -5,11 +5,10 @@ set -euo pipefail
 sudo apt-get update
 sudo apt-get install -y \
   zsh git curl ca-certificates build-essential \
-  ripgrep fd-find fzf zoxide jq git-delta \
-  eza bat hexyl procs tmux starship \
   zsh-autosuggestions zsh-syntax-highlighting
 
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+bash "$repo_dir/scripts/setup-mise.sh"
 if [[ ! -e "$HOME/.zshrc" && ! -L "$HOME/.zshrc" ]]; then
   ln -s "$repo_dir/.zshrc" "$HOME/.zshrc"
 elif [[ "$HOME/.zshrc" -ef "$repo_dir/.zshrc" ]]; then

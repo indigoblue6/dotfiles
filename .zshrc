@@ -10,14 +10,14 @@ bindkey -v
 typeset -U path
 path=(
   "$HOME/.local/bin"
-  "$HOME/.anyenv/bin"
-  "$HOME/.roswell/bin"
-  "$HOME/.hsenv/bin"
-  "$HOME/.rbenv/bin"
-  "$HOME/.pyenv/bin"
   $path
 )
 export PATH
+
+# CLI の存在判定や Starship 初期化より前に mise の PATH を適用する。
+if (( $+commands[mise] )); then
+  eval "$(mise activate zsh)"
+fi
 
 # プロンプト（zsh 標準の色指定を使用）
 PROMPT='%F{green}%n@%m %F{yellow}%~ %F{red}%# %f'
@@ -84,15 +84,6 @@ zle -N history-beginning-search-forward-end history-search-end
 bindkey -M viins '^P' history-beginning-search-backward-end
 bindkey -M viins '^N' history-beginning-search-forward-end
 bindkey -M viins '^R' history-incremental-search-backward
-
-# バージョン管理ツールは、インストールされている場合のみ初期化する。
-# 補完用の fpath が追加されるため compinit より先に実行する。
-if (( $+commands[pyenv] )); then
-  eval "$(pyenv init - zsh)"
-fi
-if (( $+commands[rbenv] )); then
-  eval "$(rbenv init - zsh)"
-fi
 
 # 補完初期化。不適切な権限の補完ファイルは読み込まない。
 autoload -Uz compinit
