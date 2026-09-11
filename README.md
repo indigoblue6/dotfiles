@@ -1,5 +1,31 @@
 # dotfiles
 
+## Omarchy / Arch Linux での導入
+
+`WSL2-on-Ubuntu` から派生した `omarchy` ブランチです。
+
+```bash
+bash scripts/setup-omarchy.sh
+exec zsh
+```
+
+CLI は Omarchy の `omarchy pkg add`（pacman）で導入し、既存の mise 設定・
+Node/Codex を維持します。この OS では `setup-ubuntu.sh` / `setup-mise.sh` を実行しません。
+zsh の vi 操作、補完、履歴検索、候補表示と構文強調を利用できます。
+Omarchy の環境初期化も読み込みます。
+プロンプト・配色は Omarchy の既存の `~/.config/starship.toml` を継承します。
+ls の色もセッション設定またはシステムの dircolors を使用します。
+既存の `.zshrc` を変更する場合は、
+`~/.local/state/dotfiles/backups/` に退避します。
+`--config-only` はパッケージ導入済みの環境用です。
+
+ログインシェルを変える場合は `chsh -s /usr/bin/zsh` 後に再ログインします。
+デスクトップと既存の tmux / Neovim 設定は維持します。
+旧 `.tmux.conf` は古い tmux 構文を含むため自動適用しません。
+検証: `bash mise-tasks/check`、`zsh -ic 'bash mise-tasks/doctor'`。
+
+以下は元の Ubuntu / WSL 向け手順です。
+
 Ubuntu / WSL と zsh 向けの開発環境。vi キーバインドを使います。
 
 ## 導入

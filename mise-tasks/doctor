@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="開発環境のセットアップ状態を自己診断"
+# Display paths literally in diagnostic messages.
+# shellcheck disable=SC2088
 set -uo pipefail
 
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -49,14 +51,14 @@ printf '%s\n' '[platform]'
 if grep -qi microsoft /proc/version 2>/dev/null; then
   pass 'WSL を検出'
 else
-  warning 'WSL ではありません'
+  pass 'ネイティブ Linux を検出'
 fi
 
 if [[ -r /etc/os-release ]]; then
   # shellcheck disable=SC1091
   . /etc/os-release
-  if [[ "${ID:-}" == "ubuntu" ]]; then
-    pass "Ubuntu ${VERSION_ID:-unknown}"
+  if [[ "${ID:-}" == "omarchy" || "${ID:-}" == "arch" || "${ID:-}" == "ubuntu" ]]; then
+    pass "${PRETTY_NAME:-Linux} ${VERSION_ID:-}"
   else
     warning "Ubuntu 以外の Linux (${PRETTY_NAME:-unknown})"
   fi
@@ -90,7 +92,7 @@ if [[ -e "$mise_config" || -L "$mise_config" ]]; then
   if [[ "$mise_config" -ef "$repo_dir/mise.toml" ]]; then
     pass 'mise config -> dotfiles/mise.toml'
   else
-    warning 'mise config は dotfiles/mise.toml へのリンクではありません'
+    pass '既存の mise config を使用（Omarchy では CLI は pacman 管理）'
   fi
 else
   failure 'mise config がありません'
@@ -101,7 +103,11 @@ if [[ -e "$starship_config" || -L "$starship_config" ]]; then
   if [[ "$starship_config" -ef "$repo_dir/starship.toml" ]]; then
     pass 'Starship config -> dotfiles/starship.toml'
   else
-    warning 'Starship config は dotfiles/starship.toml へのリンクではありません'
+    if [[ "${ID:-}" == omarchy ]]; then
+      pass 'Omarchy の Starship 設定・配色を使用'
+    else
+      warning 'Starship config は dotfiles/starship.toml へのリンクではありません'
+    fi
   fi
 else
   warning 'Starship config がありません'
